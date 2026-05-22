@@ -1,0 +1,28 @@
+import torch
+
+def compute_metrics(activations):
+    """
+    Calculates Effective Spectral Dimension and Representation Entropy.
+    activations: Tensor of shape (n_samples, n_features)
+    """
+    # 1. Center the activations
+    mean = activations.mean(dim=0)
+    centered_h = activations - mean
+    
+    # 2. Compute Covariance Matrix
+    cov = torch.matmul(centered_h.t(), centered_h) / (activations.size(0) - 1)
+    
+    # 3. Get Eigenvalues
+    eigenvalues = torch.linalg.eigh(cov)[0]
+    eigenvalues = eigenvalues[eigenvalues > 1e-6] # Numerical stability
+    
+    # 4. Effective Spectral Dimension (D_eff)
+    sum_ev = eigenvalues.sum()
+    sum_ev_sq = (eigenvalues ** 2).sum()
+    d_eff = (sum_ev ** 2) / sum_ev_sq
+    
+    # 5. Representation Entropy (H)
+    probs = eigenvalues / sum_ev
+    entropy = - (probs * torch.log(probs + 1e-10)).sum()
+    
+    return d_eff.item(), entropy.item()
